@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini Minecraft 3D</title>
+
+<style>
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: Arial;
+}
+
+#info {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: white;
+    font-size: 18px;
+    text-shadow: 2px 2px 4px black;
+    z-index: 2;
+}
+
+#crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    color: white;
+    font-size: 25px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+#start {
+    position: absolute;
+    inset: 0;
+    background: #0009;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    z-index: 5;
+}
+
+button {
+    padding: 15px 30px;
+    font-size: 20px;
+    background: #55aa33;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+#help {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    background: #0009;
+    padding: 10px;
+    text-align: center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="info">MINI MINECRAFT 3D</div>
+<div id="crosshair">+</div>
+
+<div id="help">
+WASD: Move | Mouse: Look | Space: Jump<br>
+Left Click: Break Block | Right Click: Place Block
+</div>
+
+<div id="start">
+    <h1>MINI MINECRAFT 3D</h1>
+    <p>Explore your own block world!</p>
+    <button id="play">START GAME</button>
+</div>
+
+<script type="module">
+
+import * as THREE from
+'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+// SCENE
+
+const scene = new THREE.Scene();
+
+scene.background = new THREE.Color(0x87CEEB);
+
+scene.fog = new THREE.Fog(0x87CEEB, 20, 60);
+
+// CAMERA
+
+const camera = new THREE.PerspectiveCamera(
+    75,
+    innerWidth / innerHeight,
+    0.1,
+    1000
+);
+
+// RENDERER
+
+const renderer = new THREE.WebGLRenderer({
+    antialias: true
+});
+
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+
+renderer.shadowMap.enabled = true;
+
+document.body.appendChild(renderer.domElement);
+
+// LIGHTS
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x666644, 2));
+
+const sunlight = new THREE.DirectionalLight(0xffffff, 2);
+
+sunlight.position.set(-10, 20, 10);
+sunlight.castShadow = true;
+
+scene.add(sunlight);
+
+// BLOCK MATERIALS
+
+const materials = {
+    grass: new THREE.MeshLambertMaterial({color: 0x55aa33}),
+    dirt: new THREE.MeshLambertMaterial({color: 0x8B5A2B}),
+    stone: new THREE.MeshLambertMaterial({color: 0x888888}),
+    wood: new THREE.MeshLambertMaterial({color: 0x80502B}),
+    leaves: new THREE.MeshLambertMaterial({color: 0x228833})
+};
+
+const geometry = new THREE.BoxGeometry(1, 1, 1);
+
+const blocks = new Map();
+
+function blockKey(x, y, z) {
+    return `${x},${y},${z}`;
+}
+
+// CREATE BLOCK
+
+function addBlock(x, y, z, type = "grass") {
+
+    const key = blockKey(x, y, z);
+
+    if (blocks.has(key)) return;
+
+    const block = new THREE.Mesh(
+        geometry,
+        materials[type]
+    );
+
+    block.position.set(x, y, z);
+
+    block.castShadow = true;
+    block.receiveShadow = true;
+
+    block.userData = {x, y, z, type};
+
+    scene.add(block);
+
+    blocks.set(key, block);
+}
+
+// REMOVE BLOCK
+
+function removeBlock(block) {
+
+    const b = block.userData;
+
+    blocks.delete(blockKey(b.x, b.y, b.z));
+
+    scene.remove(block);
+}
+
+// TERRAIN
+
+function terrainHeight(x, z) {
+
+    return Math.floor(
+        1 + Math.sin(x * 0.4) +
+        Math.cos(z *
